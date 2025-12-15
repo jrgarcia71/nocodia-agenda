@@ -1,3 +1,4 @@
+console.log("CONFIGURAR AGENDA EJECUTADA");
 
 const { createClient } = require("@supabase/supabase-js");
 
