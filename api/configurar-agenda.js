@@ -1,4 +1,4 @@
-console.log("CONFIGURAR AGENDA EJECUTADA");
+
 
 const { createClient } = require("@supabase/supabase-js");
 
@@ -8,6 +8,7 @@ const supabase = createClient(
 );
 
 module.exports = async function handler(req, res) {
+  console.log("CONFIGURAR AGENDA EJECUTADA");
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido" });
   }
