@@ -129,3 +129,32 @@
   </script>
 </body>
 </html>
+<hr />
+<h3>Prueba directa Worker Agenda</h3>
+
+<button onclick="probarWorker()">Probar guardar médico</button>
+
+<pre id="resultado-worker"></pre>
+
+<script>
+  async function probarWorker() {
+    const res = await fetch(
+      "https://nocodia-agenda-worker.TU_SUBDOMINIO.workers.dev/configurar-agenda",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: "Dr. Jose Garcia",
+          especialidad: "Imagenología",
+          contacto: "@drjosegarcia"
+        })
+      }
+    );
+
+    const data = await res.json();
+    document.getElementById("resultado-worker").textContent =
+      JSON.stringify(data, null, 2);
+  }
+</script>
+
+
