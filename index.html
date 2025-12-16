@@ -2,71 +2,98 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Configurar agenda médica</title>
+  <title>Nocodia — Configurar agenda médica</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Supabase client -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <!-- Variables (Vercel las inyecta) -->
-  <script>
-    window.SUPABASE_URL = "https://TU_PROYECTO.supabase.co";
-    window.SUPABASE_ANON_KEY = "TU_ANON_PUBLIC_KEY";
-  </script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f6f7f9;
-      padding: 20px;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
     }
     .container {
-      max-width: 500px;
-      margin: auto;
+      max-width: 600px;
+      margin: 40px auto;
       background: #fff;
-      padding: 20px;
+      padding: 24px;
       border-radius: 8px;
+    }
+    h1 {
+      margin-top: 0;
     }
     label {
       display: block;
-      margin-top: 15px;
+      margin-top: 16px;
       font-weight: bold;
     }
-    input, select, button {
+    input, select {
       width: 100%;
       padding: 10px;
-      margin-top: 5px;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+    .dias {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .dias label {
+      font-weight: normal;
     }
     button {
-      margin-top: 20px;
+      margin-top: 24px;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
       background: #111827;
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
+    button:hover {
+      background: #000;
+    }
+    .nota {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #555;
+    }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h2>Configura tu agenda de atención</h2>
+    <h1>Configura tu agenda de atención</h1>
 
-    <form id="agendaForm">
+    <form id="agenda-form">
+
       <label>Nombre del médico</label>
-      <input id="nombre" required />
+      <input id="nombre" type="text" required />
 
       <label>Especialidad</label>
-      <input id="especialidad" />
+      <input id="especialidad" type="text" required />
 
       <label>Contacto principal (Telegram o Email)</label>
-      <input id="contacto" required />
+      <input id="contacto" type="text" required />
 
-      <label>Hora inicio</label>
-      <input type="time" id="hora_inicio" required />
+      <label>Días de atención</label>
+      <div class="dias">
+        <label><input type="checkbox" name="dias" value="lunes"> Lunes</label>
+        <label><input type="checkbox" name="dias" value="martes"> Martes</label>
+        <label><input type="checkbox" name="dias" value="miercoles"> Miércoles</label>
+        <label><input type="checkbox" name="dias" value="jueves"> Jueves</label>
+        <label><input type="checkbox" name="dias" value="viernes"> Viernes</label>
+        <label><input type="checkbox" name="dias" value="sabado"> Sábado</label>
+      </div>
 
-      <label>Hora fin</label>
-      <input type="time" id="hora_fin" required />
+      <label>Hora de inicio</label>
+      <input id="hora_inicio" type="time" required />
+
+      <label>Hora de fin</label>
+      <input id="hora_fin" type="time" required />
 
       <label>Duración de cada cita (minutos)</label>
       <select id="duracion">
@@ -77,84 +104,57 @@
       </select>
 
       <button type="submit">Guardar y activar agenda</button>
+
+      <div class="nota">
+        Podrás cambiar tus horarios fácilmente desde Telegram cuando lo necesites.
+      </div>
+
     </form>
   </div>
 
   <script>
-    const supabase = window.supabase.createClient(
-      window.SUPABASE_URL,
-      window.SUPABASE_ANON_KEY
-    );
+    const WORKER_URL = "https://nocodia-agenda-worker-jraul-garcia.workers.dev";
 
-    function generarSlug(texto) {
-      return texto
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-");
-    }
+    document
+      .getElementById("agenda-form")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-    document.getElementById("agendaForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+        const diasSeleccionados = Array.from(
+          document.querySelectorAll("input[name='dias']:checked")
+        ).map(d => d.value);
 
-      const nombre = document.getElementById("nombre").value.trim();
-      const especialidad = document.getElementById("especialidad").value.trim();
-      const contacto = document.getElementById("contacto").value.trim();
+        const payload = {
+          nombre: document.getElementById("nombre").value,
+          especialidad: document.getElementById("especialidad").value,
+          contacto: document.getElementById("contacto").value,
+          hora_inicio: document.getElementById("hora_inicio").value,
+          hora_fin: document.getElementById("hora_fin").value,
+          duracion: document.getElementById("duracion").value,
+          dias: diasSeleccionados
+        };
 
-      if (!nombre || !contacto) {
-        alert("Datos incompletos");
-        return;
-      }
+        try {
+          const response = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
 
-      const slug = generarSlug(nombre);
+          const result = await response.json();
 
-      const { error } = await supabase
-        .from("doctors")
-        .insert([
-          {
-            nombre,
-            especialidad,
-            contacto,
-            slug
+          if (!response.ok) {
+            alert(result.error || "Error al guardar agenda");
+            return;
           }
-        ]);
 
-      if (error) {
-        alert(error.message);
-      } else {
-        alert("Agenda guardada correctamente");
-        document.getElementById("agendaForm").reset();
-      }
-    });
+          alert("Agenda guardada correctamente");
+
+        } catch (error) {
+          console.error(error);
+          alert("No se pudo conectar con el servidor");
+        }
+      });
   </script>
 </body>
 </html>
-<hr />
-<h3>Prueba directa Worker Agenda</h3>
-
-<button onclick="probarWorker()">Probar guardar médico</button>
-
-<pre id="resultado-worker"></pre>
-
-<script>
-  async function probarWorker() {
-    const res = await fetch(
-      "https://nocodia-agenda-worker.TU_SUBDOMINIO.workers.dev/configurar-agenda",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: "Dr. Jose Garcia",
-          especialidad: "Imagenología",
-          contacto: "@drjosegarcia"
-        })
-      }
-    );
-
-    const data = await res.json();
-    document.getElementById("resultado-worker").textContent =
-      JSON.stringify(data, null, 2);
-  }
-</script>
-
-
