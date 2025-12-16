@@ -2,139 +2,130 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Nocodia · Configurar Agenda</title>
+  <title>Configurar agenda médica</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase client -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Variables (Vercel las inyecta) -->
+  <script>
+    window.SUPABASE_URL = "https://TU_PROYECTO.supabase.co";
+    window.SUPABASE_ANON_KEY = "TU_ANON_PUBLIC_KEY";
+  </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f6f7f9;
       padding: 20px;
     }
-    form {
-      background: white;
-      max-width: 600px;
+    .container {
+      max-width: 500px;
       margin: auto;
+      background: #fff;
       padding: 20px;
       border-radius: 8px;
     }
-    h1 {
-      margin-bottom: 10px;
-    }
     label {
       display: block;
-      margin-top: 12px;
+      margin-top: 15px;
       font-weight: bold;
     }
-    input, select {
+    input, select, button {
       width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-    }
-    .dias label {
-      font-weight: normal;
-      display: block;
+      padding: 10px;
+      margin-top: 5px;
     }
     button {
       margin-top: 20px;
-      padding: 12px;
-      width: 100%;
       background: #111827;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 16px;
       cursor: pointer;
     }
   </style>
 </head>
+
 <body>
+  <div class="container">
+    <h2>Configura tu agenda de atención</h2>
 
-<form id="agenda-form">
-  <h1>Configurar agenda médica</h1>
+    <form id="agendaForm">
+      <label>Nombre del médico</label>
+      <input id="nombre" required />
 
-  <label>Nombre del médico</label>
-  <input id="nombre_medico" required />
+      <label>Especialidad</label>
+      <input id="especialidad" />
 
-  <label>Especialidad</label>
-  <input id="especialidad" required />
+      <label>Contacto principal (Telegram o Email)</label>
+      <input id="contacto" required />
 
-  <label>Contacto (opcional)</label>
-  <input id="contacto" />
+      <label>Hora inicio</label>
+      <input type="time" id="hora_inicio" required />
 
-  <label>Días de atención</label>
-  <div class="dias">
-    <label><input type="checkbox" name="dias" value="Lunes" /> Lunes</label>
-    <label><input type="checkbox" name="dias" value="Martes" /> Martes</label>
-    <label><input type="checkbox" name="dias" value="Miércoles" /> Miércoles</label>
-    <label><input type="checkbox" name="dias" value="Jueves" /> Jueves</label>
-    <label><input type="checkbox" name="dias" value="Viernes" /> Viernes</label>
-    <label><input type="checkbox" name="dias" value="Sábado" /> Sábado</label>
+      <label>Hora fin</label>
+      <input type="time" id="hora_fin" required />
+
+      <label>Duración de cada cita (minutos)</label>
+      <select id="duracion">
+        <option value="15">15</option>
+        <option value="30" selected>30</option>
+        <option value="45">45</option>
+        <option value="60">60</option>
+      </select>
+
+      <button type="submit">Guardar y activar agenda</button>
+    </form>
   </div>
 
-  <label>Hora inicio</label>
-  <input id="hora_inicio" type="time" required />
+  <script>
+    const supabase = window.supabase.createClient(
+      window.SUPABASE_URL,
+      window.SUPABASE_ANON_KEY
+    );
 
-  <label>Hora fin</label>
-  <input id="hora_fin" type="time" required />
-
-  <label>Duración de cada cita (minutos)</label>
-  <select id="duracion_cita">
-    <option value="15">15</option>
-    <option value="20">20</option>
-    <option value="30" selected>30</option>
-    <option value="45">45</option>
-    <option value="60">60</option>
-  </select>
-
-  <label>Días máximos de adelanto</label>
-  <select id="dias_adelanto">
-    <option value="7">7</option>
-    <option value="14">14</option>
-    <option value="30" selected>30</option>
-  </select>
-
-  <button type="submit">Guardar y activar agenda</button>
-</form>
-
-<script>
-  const form = document.getElementById("agenda-form");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const diasSeleccionados = Array.from(
-      document.querySelectorAll('input[name="dias"]:checked')
-    ).map((el) => el.value);
-
-    const payload = {
-      nombre_medico: document.getElementById("nombre_medico").value,
-      especialidad: document.getElementById("especialidad").value,
-      contacto: document.getElementById("contacto").value,
-      dias_atencion: diasSeleccionados,
-      hora_inicio: document.getElementById("hora_inicio").value,
-      hora_fin: document.getElementById("hora_fin").value,
-      duracion_cita: parseInt(document.getElementById("duracion_cita").value),
-      dias_adelanto: parseInt(document.getElementById("dias_adelanto").value),
-    };
-
-    console.log("ENVIANDO:", payload);
-
-    const res = await fetch("/api/configurar-agenda", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.error || "Error al guardar");
-      return;
+    function generarSlug(texto) {
+      return texto
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-");
     }
 
-    alert("Agenda configurada correctamente");
-  });
-</script>
+    document.getElementById("agendaForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
 
+      const nombre = document.getElementById("nombre").value.trim();
+      const especialidad = document.getElementById("especialidad").value.trim();
+      const contacto = document.getElementById("contacto").value.trim();
+
+      if (!nombre || !contacto) {
+        alert("Datos incompletos");
+        return;
+      }
+
+      const slug = generarSlug(nombre);
+
+      const { error } = await supabase
+        .from("doctors")
+        .insert([
+          {
+            nombre,
+            especialidad,
+            contacto,
+            slug
+          }
+        ]);
+
+      if (error) {
+        alert(error.message);
+      } else {
+        alert("Agenda guardada correctamente");
+        document.getElementById("agendaForm").reset();
+      }
+    });
+  </script>
 </body>
 </html>
