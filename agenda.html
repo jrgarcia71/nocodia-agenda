@@ -3,25 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <title>Reserva tu cita · Nocodia</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <style>
-    body{font-family:Arial, sans-serif;background:#f7f7f7;margin:0;padding:20px;}
-    .card{max-width:480px;margin:20px auto;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);}
-    h2,h3{margin-top:0;}
-    label{display:block;margin-top:10px;font-weight:bold;}
-    input{width:100%;padding:10px;margin-top:4px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;}
-    .slots-container{margin-top:10px;}
-    .slot{padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:8px;cursor:pointer;font-size:14px;}
-    .slot:hover{background:#eef4ff;}
-    .slot.active{background:#dbeafe;border-color:#2563eb;}
-    button{margin-top:16px;width:100%;padding:12px;border:none;border-radius:8px;background:#111827;color:#ffffff;font-weight:bold;font-size:15px;cursor:pointer;}
-    button:disabled{opacity:.6;cursor:default;}
-    .msg{margin-top:12px;font-size:14px;}
-    .msg.ok{color:#0a7d28;}
-    .msg.err{color:#c00;}
-    hr{margin:20px 0;}
-    small{color:#6b7280;font-size:12px;}
+    body{
+      font-family:Arial, sans-serif;
+      background:#f7f7f7;
+      margin:0;
+      padding:20px;
+    }
+    .card{
+      max-width:480px;
+      margin:20px auto;
+      background:#ffffff;
+      padding:24px;
+      border-radius:12px;
+      box-shadow:0 4px 16px rgba(0,0,0,.08);
+    }
+    h2,h3{ margin-top:0; }
+    label{
+      display:block;
+      margin-top:14px;
+      font-weight:bold;
+    }
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:6px;
+      border:1px solid #d1d5db;
+      border-radius:6px;
+      box-sizing:border-box;
+      font-size:14px;
+    }
+    .slots-container{ margin-top:10px; }
+    .slot{
+      padding:10px 12px;
+      border:1px solid #d1d5db;
+      border-radius:8px;
+      margin-top:8px;
+      cursor:pointer;
+      background:#f9fafb;
+    }
+    .slot:hover{ background:#eef2ff; }
+    .slot.active{
+      background:#dbeafe;
+      border-color:#2563eb;
+      font-weight:bold;
+    }
+    button{
+      margin-top:18px;
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:8px;
+      background:#111827;
+      color:#ffffff;
+      font-weight:bold;
+      font-size:15px;
+      cursor:pointer;
+    }
+    button:disabled{ opacity:.6; }
+    .msg{ margin-top:10px; font-size:14px; }
+    .msg.ok{ color:#0a7d28; }
+    .msg.err{ color:#b91c1c; }
+    hr{ margin:20px 0; }
   </style>
 </head>
 
@@ -29,214 +74,133 @@
   <div class="card">
     <h2>Reserva tu cita</h2>
 
-    <!-- FECHA -->
-    <label for="date">Elige la fecha *</label>
-    <input type="date" id="date">
+    <label>Elige la fecha *</label>
+    <input id="date" type="date"/>
 
-    <!-- HORARIOS -->
     <div id="slots" class="slots-container"></div>
 
     <hr>
 
-    <!-- FORMULARIO PACIENTE -->
     <h3>Datos del paciente</h3>
 
-    <form id="patientForm">
-      <!-- Campos ocultos para el Worker -->
+    <form id="form">
       <input type="hidden" id="doctor_id">
       <input type="hidden" id="slot_start">
       <input type="hidden" id="slot_end">
 
-      <label for="name">Nombre completo *</label>
-      <input id="name" placeholder="Ej: Juan Pérez" required>
+      <label>Nombre completo *</label>
+      <input id="name" required>
 
-      <label for="national_id">Cédula *</label>
-      <input id="national_id" maxlength="10" placeholder="10 dígitos" required>
+      <label>Cédula *</label>
+      <input id="national_id" maxlength="10" required>
 
-      <label for="phone">Teléfono *</label>
-      <input id="phone" placeholder="Ej: 0999999999" required>
+      <label>Teléfono *</label>
+      <input id="phone" required>
 
-      <label for="email">Email (opcional)</label>
-      <input id="email" type="email" placeholder="correo@ejemplo.com">
+      <label>Email (opcional)</label>
+      <input id="email" type="email">
 
       <button type="submit">Reservar cita</button>
       <div id="msg" class="msg"></div>
-      <small>La cédula y el teléfono se usan para identificarte y poder facturar.</small>
     </form>
   </div>
 
-  <script>
-    // ==============================
-    // 1) CONFIGURACIÓN FIJA
-    // ==============================
+<script>
+const API = "https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev";
+const DOCTOR_ID = "TEST";
+document.getElementById("doctor_id").value = DOCTOR_ID;
 
-    // URL de tu Worker (la que acabas de decirme)
-    const API_BASE = "https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev";
+// ---------- formato 09:00 ----------
+function formatTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit",hour12:false});
+}
 
-    // ID del doctor para esta agenda (por ahora usamos TEST, que ya responde en /availability)
-    const DOCTOR_ID = "TEST";
+// ---------- cargar horarios ----------
+document.getElementById("date").addEventListener("change", async()=>{
+  const date = document.getElementById("date").value;
+  const box  = document.getElementById("slots");
+  box.innerHTML = "Cargando horarios…";
 
-    // Seteamos el doctor_id en el campo oculto
-    document.getElementById("doctor_id").value = DOCTOR_ID;
+  document.getElementById("slot_start").value="";
+  document.getElementById("slot_end").value="";
 
-    const dateInput = document.getElementById("date");
-    const slotsBox  = document.getElementById("slots");
-    const form      = document.getElementById("patientForm");
-    const msg       = document.getElementById("msg");
+  const res = await fetch(`${API}/availability`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      doctor_id:DOCTOR_ID,
+      date,
+      timezone:"America/Guayaquil"
+    })
+  });
 
-    // ==============================
-    // 2) CARGAR HORARIOS DESDE /availability
-    // ==============================
+  const data = await res.json();
+  box.innerHTML = "";
 
-    dateInput.addEventListener("change", async () => {
-      const date = dateInput.value; // formato YYYY-MM-DD
-      slotsBox.innerHTML = "Cargando horarios…";
+  if(!res.ok || data.error){
+    box.innerHTML = "Error cargando horarios";
+    return;
+  }
 
-      // limpiamos selección previa
-      document.getElementById("slot_start").value = "";
-      document.getElementById("slot_end").value = "";
+  data.slots.forEach(s=>{
+    if(s.status!=="available") return;
 
-      try {
-        const res = await fetch(`${API_BASE}/availability`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            doctor_id: DOCTOR_ID,
-            date,
-            timezone: "America/Guayaquil"
-          })
-        });
+    const div = document.createElement("div");
+    div.className="slot";
 
-        const data = await res.json();
-        slotsBox.innerHTML = "";
+    // 🔥 AQUI ESTA LA DIFERENCIA
+    div.innerText = `${formatTime(s.start)} → ${formatTime(s.end)}`;
 
-        if (!res.ok || data.error) {
-          throw new Error(data.error || "No se pudo obtener la disponibilidad.");
-        }
+    div.onclick=()=>{
+      document.querySelectorAll(".slot").forEach(x=>x.classList.remove("active"));
+      div.classList.add("active");
 
-        if (!data.slots || data.slots.length === 0) {
-          slotsBox.textContent = "No hay horarios disponibles para esta fecha.";
-          return;
-        }
+      document.getElementById("slot_start").value=s.start; // ISO → al Worker
+      document.getElementById("slot_end").value=s.end;
+    };
 
-        data.slots.forEach(slot => {
-          if (slot.status !== "available") return;
+    box.appendChild(div);
+  });
 
-          const div = document.createElement("div");
-          div.className = "slot";
-          div.textContent = `${slot.start} → ${slot.end}`;
+  if(!box.innerHTML) box.innerHTML="No hay horarios disponibles.";
+});
 
-          div.addEventListener("click", () => {
-            document.querySelectorAll(".slot").forEach(s => s.classList.remove("active"));
-            div.classList.add("active");
-            document.getElementById("slot_start").value = slot.start;
-            document.getElementById("slot_end").value = slot.end;
-          });
+// ---------- reservar ----------
+document.getElementById("form").addEventListener("submit", async(e)=>{
+  e.preventDefault();
 
-          slotsBox.appendChild(div);
-        });
+  const payload={
+    doctor_id:DOCTOR_ID,
+    slot_start:document.getElementById("slot_start").value,
+    slot_end:document.getElementById("slot_end").value,
+    patient:{
+      name:document.getElementById("name").value.trim(),
+      national_id:document.getElementById("national_id").value.trim(),
+      phone:document.getElementById("phone").value.trim(),
+    }
+  };
 
-        if (slotsBox.innerHTML === "") {
-          slotsBox.textContent = "No hay horarios disponibles para esta fecha.";
-        }
-      } catch (error) {
-        slotsBox.innerHTML = "";
-        msg.className = "msg err";
-        msg.textContent = "Error al cargar horarios: " + error.message;
-      }
-    });
+  const email=document.getElementById("email").value.trim();
+  if(email) payload.patient.email=email;
 
-    // ==============================
-    // 3) ENVIAR RESERVA A /book
-    // ==============================
+  const res=await fetch(`${API}/book`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      msg.textContent = "";
-      msg.className = "msg";
+  const data=await res.json();
+  const msg=document.getElementById("msg");
 
-      const doctor_id  = document.getElementById("doctor_id").value;
-      const slot_start = document.getElementById("slot_start").value;
-      const slot_end   = document.getElementById("slot_end").value;
-
-      const name        = document.getElementById("name").value.trim();
-      const national_id = document.getElementById("national_id").value.trim();
-      const phone       = document.getElementById("phone").value.trim();
-      const email       = document.getElementById("email").value.trim();
-
-      // Validaciones mínimas Ecuador
-      if (!dateInput.value) {
-        msg.className = "msg err";
-        msg.textContent = "Selecciona una fecha.";
-        return;
-      }
-
-      if (!slot_start || !slot_end) {
-        msg.className = "msg err";
-        msg.textContent = "Selecciona un horario.";
-        return;
-      }
-
-      if (!name || !national_id || !phone) {
-        msg.className = "msg err";
-        msg.textContent = "Completa nombre, cédula y teléfono.";
-        return;
-      }
-
-      if (national_id.length !== 10) {
-        msg.className = "msg err";
-        msg.textContent = "La cédula debe tener 10 dígitos.";
-        return;
-      }
-
-      const payload = {
-        doctor_id,
-        slot_start,
-        slot_end,
-        patient: {
-          name,
-          national_id,
-          phone
-        }
-      };
-
-      if (email.length > 0) {
-        payload.patient.email = email; // EMAIL OPCIONAL
-      }
-
-      const button = form.querySelector("button");
-      button.disabled = true;
-      button.textContent = "Reservando…";
-
-      try {
-        const res = await fetch(`${API_BASE}/book`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (!res.ok || data.error) {
-          throw new Error(data.error || "No se pudo reservar la cita.");
-        }
-
-        msg.className = "msg ok";
-        msg.textContent = "Cita reservada correctamente.";
-
-        form.reset();
-        document.getElementById("doctor_id").value = DOCTOR_ID;
-        document.getElementById("slot_start").value = "";
-        document.getElementById("slot_end").value = "";
-        document.querySelectorAll(".slot").forEach(s => s.classList.remove("active"));
-      } catch (error) {
-        msg.className = "msg err";
-        msg.textContent = "Error al reservar la cita: " + error.message;
-      } finally {
-        button.disabled = false;
-        button.textContent = "Reservar cita";
-      }
-    });
-  </script>
+  if(!res.ok||data.error){
+    msg.className="msg err";
+    msg.innerText=data.error||"No se pudo reservar.";
+  }else{
+    msg.className="msg ok";
+    msg.innerText="Cita reservada correctamente.";
+  }
+});
+</script>
 </body>
 </html>
