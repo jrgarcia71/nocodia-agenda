@@ -32,16 +32,35 @@
       padding: 10px;
       margin-top: 6px;
       font-size: 14px;
+      box-sizing: border-box;
     }
+
+    /* 🔹 DIAS — GRID FIJO EN 7 COLUMNAS (NO SE ROMPE) */
     .dias {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+      text-align: center;
     }
+
     .dias label {
       font-weight: normal;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 13px;
+      white-space: nowrap;
     }
+
+    /* 🔹 CELULAR: BAJA A 2 FILAS, PERO ORDENADAS */
+    @media(max-width: 480px){
+      .dias{
+        grid-template-columns: repeat(4,1fr);
+      }
+    }
+
     button {
       margin-top: 24px;
       width: 100%;
@@ -56,13 +75,14 @@
     button:hover {
       background: #000;
     }
+
     .nota {
       margin-top: 12px;
       font-size: 13px;
       color: #555;
     }
 
-    /* 🔹 Estilos del botón de agenda pública */
+    /* 🔹 BOTÓN AGENDA PÚBLICA */
     .public-link-box{
       margin-top:20px;
       text-align:center;
@@ -104,14 +124,15 @@
       <input id="contacto" type="text" required />
 
       <label>Días de atención</label>
+
       <div class="dias">
-        <label><input type="checkbox" name="dias" value="lunes"> Lunes</label>
-        <label><input type="checkbox" name="dias" value="martes"> Martes</label>
-        <label><input type="checkbox" name="dias" value="miercoles"> Miércoles</label>
-        <label><input type="checkbox" name="dias" value="jueves"> Jueves</label>
-        <label><input type="checkbox" name="dias" value="viernes"> Viernes</label>
-        <label><input type="checkbox" name="dias" value="sabado"> Sábado</label>
-        <label><input type="checkbox" name="dias" value="domingo"> Domingo</label>
+        <label><input type="checkbox" name="dias" value="lunes"> Lun</label>
+        <label><input type="checkbox" name="dias" value="martes"> Mar</label>
+        <label><input type="checkbox" name="dias" value="miercoles"> Mié</label>
+        <label><input type="checkbox" name="dias" value="jueves"> Jue</label>
+        <label><input type="checkbox" name="dias" value="viernes"> Vie</label>
+        <label><input type="checkbox" name="dias" value="sabado"> Sáb</label>
+        <label><input type="checkbox" name="dias" value="domingo"> Dom</label>
       </div>
 
       <label>Hora de inicio</label>
@@ -149,7 +170,6 @@
   </div>
 
   <script>
-    // 🔹 TU MISMO WORKER — NO LO TOCO
     const WORKER_URL = "https://nocodia-agenda-worker.jraul-garcia.workers.dev/configurar-agenda";
 
     document
