@@ -1,89 +1,107 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Conectando...</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #f5f7fa;
-    }
-    .loader {
-      text-align: center;
-    }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #111827;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conectando...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <div class="loader">
-    <div class="spinner"></div>
-    <p>Conectando tu Google Calendar...</p>
-  </div>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Conectando con Google Calendar...</h2>
+        <p>Por favor espera un momento</p>
+    </div>
 
-  <script>
-    const WORKER_URL = "https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev";
+    <script>
+        (async function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                
+                if (!code) {
+                    alert('Error: No se recibió código de autorización');
+                    window.location.href = '/';
+                    return;
+                }
 
-    (async function() {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
+                // Recuperar datos del localStorage
+                const doctorData = localStorage.getItem('doctorData');
+                
+                if (!doctorData) {
+                    alert('Error: No se encontraron datos del doctor');
+                    window.location.href = '/';
+                    return;
+                }
 
-      if (!code) {
-        alert("Error: No se recibió código de autorización");
-        window.location.href = "/";
-        return;
-      }
+                const data = JSON.parse(doctorData);
 
-      const doctorData = JSON.parse(localStorage.getItem("doctorData") || "{}");
+                // Llamar al worker
+                const response = await fetch('https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev/register-doctor', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        redirect_uri: 'https://nocodia-agenda.vercel.app/oauth-callback.html',
+                        name: data.name,
+                        specialty: data.specialty,
+                        phone: data.phone,
+                        address: data.address,
+                        office_hours: data.office_hours,
+                        consultation_price: data.consultation_price
+                    })
+                });
 
-      if (!doctorData.name) {
-        alert("Error: Datos del doctor no encontrados");
-        window.location.href = "/";
-        return;
-      }
+                const result = await response.json();
 
-      try {
-        const response = await fetch(`${WORKER_URL}/register-doctor`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: code,
-            redirect_uri: window.location.origin + "/oauth-callback.html",
-            ...doctorData
-          })
-        });
+                if (result.success) {
+                    localStorage.setItem('provider_code', result.provider_code);
+                    localStorage.setItem('doctor_id', result.doctor_id);
+                    localStorage.removeItem('doctorData');
+                    window.location.href = '/?success=true';
+                } else {
+                    alert('Error: ' + (result.error || 'No se pudo completar el registro'));
+                    window.location.href = '/';
+                }
 
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || "Error al registrar doctor");
-        }
-
-        // Redirigir al index con éxito
-        window.location.href = `/?success=true&provider_code=${result.provider_code}`;
-
-      } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
-        window.location.href = "/";
-      }
-    })();
-  </script>
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                window.location.href = '/';
+            }
+        })();
+    </script>
 </body>
 </html>
