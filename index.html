@@ -277,8 +277,10 @@
             const office_hours = document.getElementById('office_hours').value.trim();
             const consultation_price = document.getElementById('consultation_price').value;
             const slot_duration = document.getElementById('slot_duration').value;
+            const payment_methods = document.getElementById('payment_methods').value.trim();
+            const cancellation_policy = document.getElementById('cancellation_policy').value.trim();
 
-            if (!office_hours || !consultation_price || !slot_duration) {
+            if (!office_hours || !consultation_price || !slot_duration || !payment_methods || !cancellation_policy) {
                 alert('Por favor completa todos los campos');
                 return;
             }
@@ -291,7 +293,9 @@
                 address,
                 office_hours,
                 consultation_price,
-                slot_duration
+                slot_duration,
+                payment_methods,
+                cancellation_policy
             };
             
             localStorage.setItem('doctorData', JSON.stringify(doctorData));
@@ -341,4 +345,5 @@
     </script>
 </body>
 </html>
+
 
