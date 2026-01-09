@@ -208,7 +208,7 @@
                 <label>Código de Doctor</label>
                 <input type="text" id="loginCode" placeholder="DOCDRJUANGARCIA1234">
             </div>
-            <button class="btn" onclick="login()">Ingresar</button>
+            <button class="btn" onclick="doLogin()">Ingresar</button>
             <div id="loginError" class="error-message"></div>
         </div>
     </div>
@@ -288,7 +288,7 @@
             <button class="btn" onclick="saveKnowledgeBase()">Guardar Cambios</button>
         </div>
 
-        <button class="btn logout-btn" onclick="logout()">Cerrar Sesión</button>
+        <button class="btn logout-btn" onclick="doLogout()">Cerrar Sesión</button>
     </div>
 
     <script>
@@ -296,7 +296,7 @@
         let currentProviderCode = null;
 
         // Login
-        async function login() {
+        async function doLogin() {
             const code = document.getElementById('loginCode').value.trim();
             
             if (!code) {
@@ -321,6 +321,7 @@
                     showError('loginError', data.error || 'Código inválido');
                 }
             } catch (error) {
+                console.error('Error:', error);
                 showError('loginError', 'Error al conectar con el servidor');
             }
         }
@@ -376,6 +377,7 @@
                     showErrorMsg(data.error || 'Error al guardar');
                 }
             } catch (error) {
+                console.error('Error:', error);
                 showErrorMsg('Error al conectar con el servidor');
             }
         }
@@ -388,7 +390,10 @@
         }
 
         // Contador de caracteres
-        document.getElementById('knowledgeBase')?.addEventListener('input', updateCharCount);
+        const kbTextarea = document.getElementById('knowledgeBase');
+        if (kbTextarea) {
+            kbTextarea.addEventListener('input', updateCharCount);
+        }
 
         function updateCharCount() {
             const text = document.getElementById('knowledgeBase').value;
@@ -406,7 +411,7 @@
         }
 
         // Logout
-        function logout() {
+        function doLogout() {
             localStorage.removeItem('doctor_code');
             location.reload();
         }
@@ -415,3 +420,32 @@
         function showError(elementId, message) {
             const el = document.getElementById(elementId);
             el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showSuccessMsg(message) {
+            const el = document.getElementById('successMsg');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function showErrorMsg(message) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        // Auto-login si hay código guardado
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedCode = localStorage.getItem('doctor_code');
+            if (savedCode) {
+                document.getElementById('loginCode').value = savedCode;
+                doLogin();
+            }
+        });
+    </script>
+</body>
+</html>
