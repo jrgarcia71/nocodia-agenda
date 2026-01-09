@@ -290,6 +290,10 @@
                 alert('Por favor completa todos los campos');
                 return;
             }
+            if (dashboard_password.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
 
             const doctorData = {
                 name,
@@ -302,6 +306,7 @@
                 slot_duration,
                 payment_methods,
                 cancellation_policy
+                dashboard_password
             };
             
             localStorage.setItem('doctorData', JSON.stringify(doctorData));
@@ -351,6 +356,7 @@
     </script>
 </body>
 </html>
+
 
 
 
