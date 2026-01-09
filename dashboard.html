@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Nocodia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .login-card {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .char-count.warning {
+            color: #ff9800;
+        }
+        .char-count.error {
+            color: #f44336;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+        .bot-link {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .bot-link h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .link-box {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-family: monospace;
+            color: #333;
+            border: 2px solid #1976d2;
+        }
+        .copy-btn {
+            margin-top: 10px;
+            background: #1976d2;
+            width: auto;
+            padding: 10px 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-message {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .logout-btn {
+            background: #dc3545;
+            width: auto;
+            padding: 10px 20px;
+            margin-top: 20px;
+        }
+        #dashboard {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div id="login">
+        <div class="header">
+            <h1>Dashboard Doctor</h1>
+            <p>Ingresa tu código de doctor para acceder</p>
+        </div>
+        <div class="card login-card">
+            <div class="form-group">
+                <label>Código de Doctor</label>
+                <input type="text" id="loginCode" placeholder="DOCDRJUANGARCIA1234">
+            </div>
+            <button class="btn" onclick="login()">Ingresar</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard">
+        <div class="header">
+            <h1 id="doctorName">Dashboard</h1>
+            <p id="doctorSpecialty"></p>
+        </div>
+
+        <div id="successMsg" class="success-message"></div>
+        <div id="errorMsg" class="error-message"></div>
+
+        <!-- Estadísticas -->
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Estadísticas</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalAppointments">0</div>
+                    <div class="stat-label">Citas Confirmadas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información -->
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Información del Consultorio</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value" id="infoEmail">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teléfono Contacto</div>
+                    <div class="info-value" id="infoPhone">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Dirección</div>
+                    <div class="info-value" id="infoAddress">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Horario</div>
+                    <div class="info-value" id="infoHours">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Precio Consulta</div>
+                    <div class="info-value" id="infoPrice">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Duración Cita</div>
+                    <div class="info-value" id="infoDuration">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link del Bot -->
+        <div class="card">
+            <div class="bot-link">
+                <h3>🤖 Link de tu Bot para Pacientes</h3>
+                <div class="link-box" id="botLink">-</div>
+                <button class="btn copy-btn" onclick="copyLink()">📋 Copiar Link</button>
+            </div>
+        </div>
+
+        <!-- Knowledge Base -->
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">Base de Conocimientos</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Esta información adicional será utilizada por el asistente virtual para responder preguntas de los pacientes.
+                Puedes incluir detalles sobre servicios especiales, políticas específicas, o cualquier información relevante.
+            </p>
+            <div class="form-group">
+                <textarea id="knowledgeBase" placeholder="Ejemplo: Ofrecemos servicio de telemedicina. Aceptamos seguros médicos de BMI y Latina Seguros. Tenemos convenio con laboratorio Clinilab para exámenes..." maxlength="2000"></textarea>
+                <div class="char-count" id="charCount">0 / 2000 caracteres</div>
+            </div>
+            <button class="btn" onclick="saveKnowledgeBase()">Guardar Cambios</button>
+        </div>
+
+        <button class="btn logout-btn" onclick="logout()">Cerrar Sesión</button>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev';
+        let currentProviderCode = null;
+
+        // Login
+        async function login() {
+            const code = document.getElementById('loginCode').value.trim();
+            
+            if (!code) {
+                showError('loginError', 'Por favor ingresa tu código de doctor');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${WORKER_URL}/doctor-info`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider_code: code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentProviderCode = code;
+                    localStorage.setItem('doctor_code', code);
+                    loadDashboard(data.doctor, data.stats);
+                } else {
+                    showError('loginError', data.error || 'Código inválido');
+                }
+            } catch (error) {
+                showError('loginError', 'Error al conectar con el servidor');
+            }
+        }
+
+        // Cargar dashboard
+        function loadDashboard(doctor, stats) {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            document.getElementById('doctorName').textContent = `Dr. ${doctor.name}`;
+            document.getElementById('doctorSpecialty').textContent = doctor.specialty;
+
+            document.getElementById('infoEmail').textContent = doctor.email;
+            document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
+            document.getElementById('infoAddress').textContent = doctor.address;
+            document.getElementById('infoHours').textContent = doctor.office_hours;
+            document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
+            document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
+
+            const botLink = `https://t.me/nocodia_agenda_bot?start=${doctor.provider_code}`;
+            document.getElementById('botLink').textContent = botLink;
+
+            document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
+            updateCharCount();
+
+            document.getElementById('totalAppointments').textContent = stats.total_appointments;
+        }
+
+        // Guardar knowledge base
+        async function saveKnowledgeBase() {
+            const knowledgeBase = document.getElementById('knowledgeBase').value;
+
+            if (knowledgeBase.length > 2000) {
+                showErrorMsg('El texto no puede exceder 2000 caracteres');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${WORKER_URL}/update-knowledge-base`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode,
+                        knowledge_base: knowledgeBase
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessMsg('✅ Cambios guardados exitosamente');
+                } else {
+                    showErrorMsg(data.error || 'Error al guardar');
+                }
+            } catch (error) {
+                showErrorMsg('Error al conectar con el servidor');
+            }
+        }
+
+        // Copiar link
+        function copyLink() {
+            const link = document.getElementById('botLink').textContent;
+            navigator.clipboard.writeText(link);
+            showSuccessMsg('✅ Link copiado al portapapeles');
+        }
+
+        // Contador de caracteres
+        document.getElementById('knowledgeBase')?.addEventListener('input', updateCharCount);
+
+        function updateCharCount() {
+            const text = document.getElementById('knowledgeBase').value;
+            const count = text.length;
+            const counter = document.getElementById('charCount');
+            counter.textContent = `${count} / 2000 caracteres`;
+
+            if (count > 1800) {
+                counter.className = 'char-count error';
+            } else if (count > 1500) {
+                counter.className = 'char-count warning';
+            } else {
+                counter.className = 'char-count';
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('doctor_code');
+            location.reload();
+        }
+
+        // Mensajes
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
