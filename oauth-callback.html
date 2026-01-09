@@ -104,6 +104,8 @@
                         consultation_price: parseFloat(data.consultation_price),
                         slot_duration: parseInt(data.slot_duration),
                         contact_phone: data.contact_phone || null
+                        payment_methods: data.payment_methods,
+                        cancellation_policy: data.cancellation_policy
                     })
                 });
 
@@ -134,3 +136,4 @@
     </script>
 </body>
 </html>
+
