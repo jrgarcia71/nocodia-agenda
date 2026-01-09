@@ -57,6 +57,17 @@
             color: #333;
             font-weight: 500;
         }
+        .label-optional {
+            color: #999;
+            font-weight: 400;
+            font-size: 13px;
+        }
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
         input, select {
             width: 100%;
             padding: 12px;
@@ -158,8 +169,18 @@
             </div>
             
             <div class="form-group">
-                <label>Teléfono *</label>
+                <label>Tu teléfono (registro) *</label>
                 <input type="tel" id="phone" placeholder="0999999999" required>
+                <p class="helper-text">Este número es solo para tu registro interno</p>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    Teléfono de contacto para pacientes 
+                    <span class="label-optional">(opcional)</span>
+                </label>
+                <input type="tel" id="contact_phone" placeholder="0999888777">
+                <p class="helper-text">Si no lo proporcionas, los pacientes no podrán comunicarse directamente contigo o con tu consultorio</p>
             </div>
             
             <div class="form-group">
@@ -226,7 +247,7 @@
             const address = document.getElementById('address').value.trim();
 
             if (!name || !specialty || !phone || !address) {
-                alert('Por favor completa todos los campos');
+                alert('Por favor completa todos los campos obligatorios');
                 return;
             }
 
@@ -240,6 +261,7 @@
             const name = document.getElementById('name').value.trim();
             const specialty = document.getElementById('specialty').value.trim();
             const phone = document.getElementById('phone').value.trim();
+            const contact_phone = document.getElementById('contact_phone').value.trim();
             const address = document.getElementById('address').value.trim();
             const office_hours = document.getElementById('office_hours').value.trim();
             const consultation_price = document.getElementById('consultation_price').value;
@@ -254,6 +276,7 @@
                 name,
                 specialty,
                 phone,
+                contact_phone: contact_phone || null,
                 address,
                 office_hours,
                 consultation_price,
