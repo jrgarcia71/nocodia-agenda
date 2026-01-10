@@ -212,6 +212,7 @@
                     <input type="number" id="slot_duration" value="30" min="15" max="120" step="5" required>
                 </div>
             </div>
+            
             <div class="form-group">
                 <label>Formas de pago *</label>
                 <input type="text" id="payment_methods" value="Efectivo, Transferencia" required>
@@ -288,7 +289,10 @@
             const dashboard_password = document.getElementById('dashboard_password').value;
 
             if (!office_hours || !consultation_price || !slot_duration || !payment_methods || !cancellation_policy || !dashboard_password) {
+                alert('Por favor completa todos los campos');
+                return;
             }
+
             if (dashboard_password.length < 6) {
                 alert('La contraseña debe tener al menos 6 caracteres');
                 return;
@@ -304,7 +308,7 @@
                 consultation_price,
                 slot_duration,
                 payment_methods,
-                cancellation_policy
+                cancellation_policy,
                 dashboard_password
             };
             
@@ -355,9 +359,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
