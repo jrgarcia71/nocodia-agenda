@@ -194,6 +194,58 @@
         #dashboard {
             display: none;
         }
+        
+        /* Asistente Conversacional */
+        .assistant-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .assistant-card h2 {
+            color: white;
+        }
+        .assistant-card p {
+            color: rgba(255,255,255,0.9);
+        }
+        .assistant-input {
+            background: white;
+            border: none;
+            color: #333;
+            min-height: 80px;
+            font-size: 16px;
+        }
+        .assistant-input::placeholder {
+            color: #999;
+        }
+        .assistant-btn {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .assistant-btn:hover {
+            background: #f0f0f0;
+        }
+        .assistant-history {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid white;
+        }
+        .history-command {
+            font-size: 14px;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+        .history-response {
+            font-size: 13px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -226,6 +278,23 @@
 
         <div id="successMsg" class="success-message"></div>
         <div id="errorMsg" class="error-message"></div>
+
+        <!-- Asistente Conversacional -->
+        <div class="card assistant-card">
+            <h2 style="margin-bottom: 10px;">🤖 Asistente de Agenda</h2>
+            <p style="margin-bottom: 20px; font-size: 14px;">
+                Gestiona tu agenda con lenguaje natural. Ejemplos: "Mañana no trabajo", "¿Qué tengo el viernes?", "Café con Juan el jueves 3pm"
+            </p>
+            <div class="form-group">
+                <textarea 
+                    id="assistantInput" 
+                    class="assistant-input" 
+                    placeholder="Ej: Mañana no trabajo&#10;Ej: ¿Qué tengo el viernes?&#10;Ej: Reunión con proveedor el jueves 10am"></textarea>
+            </div>
+            <button class="btn assistant-btn" onclick="executeCommand()">✨ Ejecutar Comando</button>
+            
+            <div id="assistantHistory" class="assistant-history"></div>
+        </div>
 
         <!-- Estadísticas -->
         <div class="card">
@@ -298,9 +367,10 @@
     <script>
         const WORKER_URL = 'https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev';
         let currentProviderCode = null;
+        let currentDoctorData = null;
 
         // Login
-       async function doLogin() {
+        async function doLogin() {
             const code = document.getElementById('loginCode').value.trim();
             const password = document.getElementById('loginPassword').value;
             
@@ -318,14 +388,16 @@
                         password: password
                     })
                 });
+
                 const data = await response.json();
 
                 if (data.success) {
                     currentProviderCode = code;
+                    currentDoctorData = data.doctor;
                     localStorage.setItem('doctor_code', code);
                     loadDashboard(data.doctor, data.stats);
                 } else {
-                    showError('loginError', data.error || 'Código inválido');
+                    showError('loginError', data.error || 'Código o contraseña incorrectos');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -355,6 +427,64 @@
             updateCharCount();
 
             document.getElementById('totalAppointments').textContent = stats.total_appointments;
+        }
+
+        // Asistente Conversacional
+        async function executeCommand() {
+            const command = document.getElementById('assistantInput').value.trim();
+            
+            if (!command) {
+                showErrorMsg('Por favor escribe un comando');
+                return;
+            }
+
+            // Deshabilitar botón
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Procesando...';
+
+            try {
+                const response = await fetch(`${WORKER_URL}/doctor-assistant`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode,
+                        command: command
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessMsg('✅ ' + data.message);
+                    addToHistory(command, data.message);
+                    document.getElementById('assistantInput').value = '';
+                } else {
+                    showErrorMsg(data.error || 'Error al procesar comando');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorMsg('Error al conectar con el servidor');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✨ Ejecutar Comando';
+            }
+        }
+
+        function addToHistory(command, response) {
+            const history = document.getElementById('assistantHistory');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <div class="history-command">💬 ${command}</div>
+                <div class="history-response">${response}</div>
+            `;
+            history.insertBefore(item, history.firstChild);
+            
+            // Mantener solo últimos 5
+            if (history.children.length > 5) {
+                history.removeChild(history.lastChild);
+            }
         }
 
         // Guardar knowledge base
@@ -450,10 +580,8 @@
             const savedCode = localStorage.getItem('doctor_code');
             if (savedCode) {
                 document.getElementById('loginCode').value = savedCode;
-                doLogin();
             }
         });
     </script>
 </body>
 </html>
-
