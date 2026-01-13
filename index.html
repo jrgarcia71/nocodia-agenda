@@ -200,6 +200,20 @@
                 <label>Horario de atención *</label>
                 <input type="text" id="office_hours" placeholder="Lunes a Viernes, 8:00 AM - 6:00 PM" required>
             </div>
+            <div class="form-group">
+                <label>Zona Horaria *</label>
+                <select id="timezone" required>
+                    <option value="America/Guayaquil">Ecuador (GMT-5)</option>
+                    <option value="America/Bogota">Colombia (GMT-5)</option>
+                    <option value="America/Lima">Perú (GMT-5)</option>
+                    <option value="America/Mexico_City">México (GMT-6)</option>
+                    <option value="America/Argentina/Buenos_Aires">Argentina (GMT-3)</option>
+                    <option value="America/Santiago">Chile (GMT-3)</option>
+                    <option value="America/New_York">New York (GMT-5)</option>
+                    <option value="America/Los_Angeles">California (GMT-8)</option>
+                    <option value="Europe/Madrid">España (GMT+1)</option>
+                </select>
+            </div>
             
             <div class="two-col">
                 <div class="form-group">
@@ -359,3 +373,4 @@
     </script>
 </body>
 </html>
+
