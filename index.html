@@ -312,13 +312,14 @@
                 return;
             }
 
-            const doctorData = {
+           const doctorData = {
                 name,
                 specialty,
                 phone,
                 contact_phone: contact_phone || null,
                 address,
                 office_hours,
+                timezone: document.getElementById('timezone').value,
                 consultation_price,
                 slot_duration,
                 payment_methods,
@@ -373,4 +374,5 @@
     </script>
 </body>
 </html>
+
 
