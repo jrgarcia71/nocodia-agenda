@@ -95,19 +95,20 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        code: code,
-                        redirect_uri: 'https://nocodia-agenda.vercel.app/oauth-callback.html',
-                        name: data.name,
-                        specialty: data.specialty,
-                        address: data.address,
-                        office_hours: data.office_hours,
-                        consultation_price: parseFloat(data.consultation_price),
-                        slot_duration: parseInt(data.slot_duration),
-                        contact_phone: data.contact_phone || null,
-                        payment_methods: data.payment_methods,
-                        cancellation_policy: data.cancellation_policy,
-                        dashboard_password: data.dashboard_password
-                    })
+    code: code,
+    redirect_uri: 'https://nocodia-agenda.vercel.app/oauth-callback.html',
+    name: data.name,
+    specialty: data.specialty,
+    address: data.address,
+    office_hours: data.office_hours,
+    timezone: data.timezone,  // ← AGREGAR ESTA LÍNEA
+    consultation_price: parseFloat(data.consultation_price),
+    slot_duration: parseInt(data.slot_duration),
+    contact_phone: data.contact_phone || null,
+    payment_methods: data.payment_methods,
+    cancellation_policy: data.cancellation_policy,
+    dashboard_password: data.dashboard_password
+})
                 });
 
                 progressText.textContent = 'Guardando configuración...';
@@ -137,6 +138,7 @@
     </script>
 </body>
 </html>
+
 
 
 
