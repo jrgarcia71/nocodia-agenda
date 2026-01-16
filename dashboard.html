@@ -338,14 +338,19 @@
             </div>
         </div>
 
-        <!-- Link del Bot -->
-        <div class="card">
-            <div class="bot-link">
-                <h3>🤖 Link de tu Bot para Pacientes</h3>
-                <div class="link-box" id="botLink">-</div>
-                <button class="btn copy-btn" onclick="copyLink()">📋 Copiar Link</button>
-            </div>
+    <!-- Enlaces de los Bots -->
+<div class="card">
+    <h2 style="margin-bottom: 10px;">🤖 Enlaces para Pacientes</h2>
+    <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+        Comparte estos enlaces con tus pacientes para que puedan agendar citas contigo desde WhatsApp o Telegram.
+    </p>
+    <div id="botLink">
+        <div style="text-align: center; color: #999; padding: 20px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+            <div>Cargando enlaces...</div>
         </div>
+    </div>
+</div>
 
         <!-- Knowledge Base -->
         <div class="card">
@@ -406,28 +411,69 @@
         }
 
         // Cargar dashboard
-        function loadDashboard(doctor, stats) {
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
+        // Cargar dashboard
+async function loadDashboard(doctor, stats) {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
 
-            document.getElementById('doctorName').textContent = `Dr. ${doctor.name}`;
-            document.getElementById('doctorSpecialty').textContent = doctor.specialty;
+    document.getElementById('doctorName').textContent = `Dr. ${doctor.name}`;
+    document.getElementById('doctorSpecialty').textContent = doctor.specialty;
 
-            document.getElementById('infoEmail').textContent = doctor.email;
-            document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
-            document.getElementById('infoAddress').textContent = doctor.address;
-            document.getElementById('infoHours').textContent = doctor.office_hours;
-            document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
-            document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
+    document.getElementById('infoEmail').textContent = doctor.email;
+    document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
+    document.getElementById('infoAddress').textContent = doctor.address;
+    document.getElementById('infoHours').textContent = doctor.office_hours;
+    document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
+    document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
 
-            const botLink = `https://t.me/nocodia_agenda_bot?start=${doctor.provider_code}`;
-            document.getElementById('botLink').textContent = botLink;
-
-            document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
-            updateCharCount();
-
-            document.getElementById('totalAppointments').textContent = stats.total_appointments;
+    // Obtener configuración pública del worker
+    try {
+        const configResponse = await fetch(`${WORKER_URL}/public-config`);
+        const configData = await configResponse.json();
+        
+        if (configData.success) {
+            const telegramLink = `https://t.me/${configData.config.telegram_bot}?start=${doctor.provider_code}`;
+            const whatsappLink = `https://wa.me/${configData.config.whatsapp_phone}?text=iniciar%20${doctor.provider_code}`;
+            
+            // Crear HTML con ambos enlaces
+            const linksHtml = `
+                <div style="margin-bottom: 25px;">
+                    <h4 style="margin-bottom: 10px; color: #25D366; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 24px;">📲</span> WhatsApp
+                    </h4>
+                    <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${whatsappLink}</div>
+                    <button class="btn copy-btn" onclick="copyLink('${whatsappLink}', 'WhatsApp')">📋 Copiar WhatsApp</button>
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <h4 style="margin-bottom: 10px; color: #0088cc; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 24px;">💬</span> Telegram
+                    </h4>
+                    <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${telegramLink}</div>
+                    <button class="btn copy-btn" onclick="copyLink('${telegramLink}', 'Telegram')">📋 Copiar Telegram</button>
+                </div>
+                <div style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+                    <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">🔑 Tu código de doctor:</div>
+                    <div style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${doctor.provider_code}</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Este código identifica tu consultorio y permite a tus pacientes agendar citas contigo.</div>
+                </div>
+            `;
+            
+            document.getElementById('botLink').innerHTML = linksHtml;
         }
+    } catch (error) {
+        console.error('Error al cargar config:', error);
+        document.getElementById('botLink').innerHTML = `
+            <div style="color: #f44336; padding: 15px; background: #ffebee; border-radius: 8px;">
+                ❌ Error al cargar enlaces. Por favor recarga la página.
+            </div>
+        `;
+    }
+
+    document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
+    updateCharCount();
+
+    document.getElementById('totalAppointments').textContent = stats.total_appointments;
+}
 
         // Asistente Conversacional
         async function executeCommand() {
@@ -520,11 +566,11 @@
         }
 
         // Copiar link
-        function copyLink() {
-            const link = document.getElementById('botLink').textContent;
-            navigator.clipboard.writeText(link);
-            showSuccessMsg('✅ Link copiado al portapapeles');
-        }
+        // Copiar link
+function copyLink(link, platform) {
+    navigator.clipboard.writeText(link);
+    showSuccessMsg(`✅ Link de ${platform} copiado al portapapeles`);
+}
 
         // Contador de caracteres
         const kbTextarea = document.getElementById('knowledgeBase');
@@ -585,3 +631,4 @@
     </script>
 </body>
 </html>
+
