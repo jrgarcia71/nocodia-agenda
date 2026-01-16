@@ -249,21 +249,23 @@
             <div id="error" class="error"></div>
         </div>
 
-        <!-- Paso 3: Éxito -->
-        <div class="step" id="step3">
-            <div class="success-message">
-                <div class="success-icon">✓</div>
-                <h1>¡Registro Exitoso!</h1>
-                <p class="subtitle">Tu asistente virtual está listo</p>
-                <p style="margin: 20px 0; font-size: 14px; color: #666;">
-                    Comparte este enlace con tus pacientes:
-                </p>
-                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; word-break: break-all; margin-bottom: 20px;">
-                    <strong id="botLink"></strong>
-                </div>
-                <a href="#" id="telegramLink" class="bot-link" target="_blank">Abrir en Telegram</a>
+       <!-- Paso 3: Éxito -->
+<div class="step" id="step3">
+    <div class="success-message">
+        <div class="success-icon">✓</div>
+        <h1>¡Registro Exitoso!</h1>
+        <p class="subtitle">Tu asistente virtual está listo</p>
+        <p style="margin: 20px 0; font-size: 14px; color: #666;">
+            Comparte estos enlaces con tus pacientes:
+        </p>
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div id="botLink">
+                <div style="text-align: center; color: #999;">⏳ Cargando enlaces...</div>
             </div>
         </div>
+        <a href="#" id="telegramLink" class="bot-link" target="_blank">Ir al Dashboard</a>
+    </div>
+</div>
     </div>
 
     <script>
@@ -351,28 +353,63 @@
             });
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('success') === 'true') {
-                const providerCode = localStorage.getItem('provider_code');
-                if (providerCode) {
-                    currentStep = 3;
-                    updateProgress();
-                    document.getElementById('step1').classList.remove('active');
-                    document.getElementById('step2').classList.remove('active');
-                    document.getElementById('step3').classList.add('active');
+    window.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+        const providerCode = localStorage.getItem('provider_code');
+        if (providerCode) {
+            currentStep = 3;
+            updateProgress();
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+            
+            // Obtener configuración del worker
+            try {
+                const WORKER_URL = 'https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev';
+                const configResponse = await fetch(`${WORKER_URL}/public-config`);
+                const configData = await configResponse.json();
+                
+                if (configData.success) {
+                    const telegramLink = `https://t.me/${configData.config.telegram_bot}?start=${providerCode}`;
+                    const whatsappLink = `https://wa.me/${configData.config.whatsapp_phone}?text=iniciar%20${providerCode}`;
                     
+                    // Actualizar el HTML
+                    document.getElementById('botLink').innerHTML = `
+                        <div style="margin-bottom: 15px; text-align: left;">
+                            <strong style="color: #25D366;">📲 WhatsApp:</strong><br>
+                            <code style="font-size: 11px; word-break: break-all; display: block; margin-top: 5px;">${whatsappLink}</code>
+                        </div>
+                        <div style="text-align: left;">
+                            <strong style="color: #0088cc;">💬 Telegram:</strong><br>
+                            <code style="font-size: 11px; word-break: break-all; display: block; margin-top: 5px;">${telegramLink}</code>
+                        </div>
+                    `;
+                    
+                    // Cambiar botón para ir al dashboard
+                    document.getElementById('telegramLink').textContent = 'Ir al Dashboard';
+                    document.getElementById('telegramLink').href = 'https://nocodia-agenda.vercel.app/dashboard.html';
+                } else {
+                    // Fallback
                     const botLink = `https://t.me/nocodia_agenda_bot?start=${providerCode}`;
                     document.getElementById('botLink').textContent = botLink;
                     document.getElementById('telegramLink').href = botLink;
-                    
-                    localStorage.removeItem('provider_code');
-                    localStorage.removeItem('doctor_id');
                 }
+            } catch (error) {
+                console.error('Error al cargar config:', error);
+                const botLink = `https://t.me/nocodia_agenda_bot?start=${providerCode}`;
+                document.getElementById('botLink').textContent = botLink;
+                document.getElementById('telegramLink').href = botLink;
             }
-        });
+            
+            localStorage.removeItem('provider_code');
+            localStorage.removeItem('doctor_id');
+        }
+    }
+});
     </script>
 </body>
 </html>
+
 
 
