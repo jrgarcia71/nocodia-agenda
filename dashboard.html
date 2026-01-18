@@ -49,7 +49,7 @@
             color: #333;
             font-weight: 500;
         }
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -57,7 +57,7 @@
             font-size: 14px;
             font-family: inherit;
         }
-        input:focus, textarea:focus {
+        input:focus, textarea:focus, select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -246,6 +246,125 @@
             font-size: 13px;
             font-weight: 600;
         }
+
+        /* Schedule Styles */
+        .schedule-day {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        .schedule-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .schedule-day-header h4 {
+            margin: 0;
+            color: #333;
+        }
+        .schedule-day-header.inactive {
+            background: #ffebee;
+        }
+        .schedule-day-header.inactive h4 {
+            color: #999;
+            text-decoration: line-through;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #4caf50;
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        .schedule-day-content {
+            padding: 15px;
+            display: none;
+        }
+        .schedule-day-content.active {
+            display: block;
+        }
+        .time-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .time-block select {
+            width: auto;
+            min-width: 100px;
+        }
+        .time-block span {
+            color: #666;
+        }
+        .add-block-btn {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 2px dashed #1976d2;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .add-block-btn:hover {
+            background: #bbdefb;
+        }
+        .remove-block-btn {
+            background: #ffebee;
+            color: #f44336;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .remove-block-btn:hover {
+            background: #ffcdd2;
+        }
+        .schedule-tip {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+            color: #e65100;
+        }
     </style>
 </head>
 <body>
@@ -324,10 +443,6 @@
                     <div class="info-value" id="infoAddress">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Horario</div>
-                    <div class="info-value" id="infoHours">-</div>
-                </div>
-                <div class="info-item">
                     <div class="info-label">Precio Consulta</div>
                     <div class="info-value" id="infoPrice">-</div>
                 </div>
@@ -338,23 +453,55 @@
             </div>
         </div>
 
-    <!-- Enlaces de los Bots -->
-<div class="card">
-    <h2 style="margin-bottom: 10px;">🤖 Enlaces para Pacientes</h2>
-    <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-        Comparte estos enlaces con tus pacientes para que puedan agendar citas contigo desde WhatsApp o Telegram.
-    </p>
-    <div id="botLink">
-        <div style="text-align: center; color: #999; padding: 20px;">
-            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
-            <div>Cargando enlaces...</div>
+        <!-- Configuración de Horario -->
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">📅 Mi Horario de Atención</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Configura los días y horas que atiendes pacientes. Este horario se usará para mostrar disponibilidad a tus pacientes.
+            </p>
+            
+            <div class="schedule-tip">
+                💡 <strong>Tip:</strong> Si un día específico no puedes atender (vacaciones, congreso, etc.), usa el Asistente de Agenda para bloquearlo.
+            </div>
+
+            <div id="scheduleContainer"></div>
+            
+            <button class="btn" onclick="saveSchedule()" style="margin-top: 20px;">💾 Guardar Horario</button>
         </div>
-    </div>
-</div>
+
+        <!-- Google Maps -->
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">📍 Ubicación en Google Maps</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Pega el enlace de Google Maps de tu consultorio para que tus pacientes puedan encontrarte fácilmente.
+            </p>
+            <div class="form-group">
+                <label>Link de Google Maps (opcional)</label>
+                <input type="text" id="googleMapsUrl" placeholder="https://maps.app.goo.gl/...">
+                <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                    📌 Cómo obtenerlo: Abre Google Maps → Busca tu consultorio → Clic en "Compartir" → "Copiar enlace"
+                </p>
+            </div>
+            <button class="btn" onclick="saveGoogleMapsUrl()">💾 Guardar Ubicación</button>
+        </div>
+
+        <!-- Enlaces de los Bots -->
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">🤖 Enlaces para Pacientes</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Comparte estos enlaces con tus pacientes para que puedan agendar citas contigo desde WhatsApp o Telegram.
+            </p>
+            <div id="botLink">
+                <div style="text-align: center; color: #999; padding: 20px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    <div>Cargando enlaces...</div>
+                </div>
+            </div>
+        </div>
 
         <!-- Knowledge Base -->
         <div class="card">
-            <h2 style="margin-bottom: 10px;">Base de Conocimientos</h2>
+            <h2 style="margin-bottom: 10px;">📚 Base de Conocimientos</h2>
             <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
                 Esta información adicional será utilizada por el asistente virtual para responder preguntas de los pacientes.
                 Puedes incluir detalles sobre servicios especiales, políticas específicas, o cualquier información relevante.
@@ -363,7 +510,7 @@
                 <textarea id="knowledgeBase" placeholder="Ejemplo: Ofrecemos servicio de telemedicina. Aceptamos seguros médicos de BMI y Latina Seguros. Tenemos convenio con laboratorio Clinilab para exámenes..." maxlength="2000"></textarea>
                 <div class="char-count" id="charCount">0 / 2000 caracteres</div>
             </div>
-            <button class="btn" onclick="saveKnowledgeBase()">Guardar Cambios</button>
+            <button class="btn" onclick="saveKnowledgeBase()">💾 Guardar Cambios</button>
         </div>
 
         <button class="btn logout-btn" onclick="doLogout()">Cerrar Sesión</button>
@@ -373,6 +520,251 @@
         const WORKER_URL = 'https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev';
         let currentProviderCode = null;
         let currentDoctorData = null;
+
+        const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+        const DAY_NAMES = {
+            'lunes': 'Lunes',
+            'martes': 'Martes',
+            'miercoles': 'Miércoles',
+            'jueves': 'Jueves',
+            'viernes': 'Viernes',
+            'sabado': 'Sábado',
+            'domingo': 'Domingo'
+        };
+
+        // Generar opciones de hora (07:00 a 21:00 en incrementos de 30 min)
+        function generateTimeOptions() {
+            let options = '';
+            for (let hour = 7; hour <= 21; hour++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+                    options += `<option value="${timeStr}">${timeStr}</option>`;
+                }
+            }
+            return options;
+        }
+
+        // Renderizar configurador de horario
+        function renderScheduleEditor(schedule) {
+            const container = document.getElementById('scheduleContainer');
+            const timeOptions = generateTimeOptions();
+            
+            let html = '';
+            
+            DAYS.forEach(day => {
+                const daySchedule = schedule && schedule[day] ? schedule[day] : [];
+                const isActive = daySchedule.length > 0;
+                
+                html += `
+                    <div class="schedule-day" id="day-${day}">
+                        <div class="schedule-day-header ${isActive ? '' : 'inactive'}" onclick="toggleDayContent('${day}')">
+                            <h4>${DAY_NAMES[day]}</h4>
+                            <label class="toggle-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" id="toggle-${day}" ${isActive ? 'checked' : ''} onchange="toggleDay('${day}')">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="schedule-day-content ${isActive ? 'active' : ''}" id="content-${day}">
+                            <div id="blocks-${day}">
+                                ${renderTimeBlocks(day, daySchedule, timeOptions)}
+                            </div>
+                            <button class="add-block-btn" onclick="addTimeBlock('${day}')">+ Agregar bloque de horario</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderTimeBlocks(day, blocks, timeOptions) {
+            if (blocks.length === 0) {
+                // Bloques por defecto
+                blocks = [{ start: '09:00', end: '13:00' }, { start: '15:00', end: '18:00' }];
+            }
+            
+            return blocks.map((block, index) => `
+                <div class="time-block" id="block-${day}-${index}">
+                    <select onchange="updateBlock('${day}', ${index}, 'start', this.value)">
+                        ${timeOptions.replace(`value="${block.start}"`, `value="${block.start}" selected`)}
+                    </select>
+                    <span>a</span>
+                    <select onchange="updateBlock('${day}', ${index}, 'end', this.value)">
+                        ${timeOptions.replace(`value="${block.end}"`, `value="${block.end}" selected`)}
+                    </select>
+                    ${blocks.length > 1 ? `<button class="remove-block-btn" onclick="removeTimeBlock('${day}', ${index})">🗑️</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function toggleDay(day) {
+            const isActive = document.getElementById(`toggle-${day}`).checked;
+            const header = document.querySelector(`#day-${day} .schedule-day-header`);
+            const content = document.getElementById(`content-${day}`);
+            
+            if (isActive) {
+                header.classList.remove('inactive');
+                content.classList.add('active');
+            } else {
+                header.classList.add('inactive');
+                content.classList.remove('active');
+            }
+        }
+
+        function toggleDayContent(day) {
+            const isActive = document.getElementById(`toggle-${day}`).checked;
+            if (isActive) {
+                const content = document.getElementById(`content-${day}`);
+                content.classList.toggle('active');
+            }
+        }
+
+        function addTimeBlock(day) {
+            const blocksContainer = document.getElementById(`blocks-${day}`);
+            const existingBlocks = blocksContainer.querySelectorAll('.time-block');
+            const newIndex = existingBlocks.length;
+            
+            if (newIndex >= 3) {
+                showErrorMsg('Máximo 3 bloques por día');
+                return;
+            }
+            
+            const timeOptions = generateTimeOptions();
+            const newBlock = document.createElement('div');
+            newBlock.className = 'time-block';
+            newBlock.id = `block-${day}-${newIndex}`;
+            newBlock.innerHTML = `
+                <select onchange="updateBlock('${day}', ${newIndex}, 'start', this.value)">
+                    ${timeOptions.replace('value="14:00"', 'value="14:00" selected')}
+                </select>
+                <span>a</span>
+                <select onchange="updateBlock('${day}', ${newIndex}, 'end', this.value)">
+                    ${timeOptions.replace('value="18:00"', 'value="18:00" selected')}
+                </select>
+                <button class="remove-block-btn" onclick="removeTimeBlock('${day}', ${newIndex})">🗑️</button>
+            `;
+            
+            blocksContainer.appendChild(newBlock);
+            updateRemoveButtons(day);
+        }
+
+        function removeTimeBlock(day, index) {
+            const block = document.getElementById(`block-${day}-${index}`);
+            if (block) {
+                block.remove();
+                reindexBlocks(day);
+            }
+        }
+
+        function reindexBlocks(day) {
+            const blocksContainer = document.getElementById(`blocks-${day}`);
+            const blocks = blocksContainer.querySelectorAll('.time-block');
+            
+            blocks.forEach((block, newIndex) => {
+                block.id = `block-${day}-${newIndex}`;
+                const selects = block.querySelectorAll('select');
+                selects[0].setAttribute('onchange', `updateBlock('${day}', ${newIndex}, 'start', this.value)`);
+                selects[1].setAttribute('onchange', `updateBlock('${day}', ${newIndex}, 'end', this.value)`);
+                
+                const removeBtn = block.querySelector('.remove-block-btn');
+                if (removeBtn) {
+                    removeBtn.setAttribute('onclick', `removeTimeBlock('${day}', ${newIndex})`);
+                }
+            });
+            
+            updateRemoveButtons(day);
+        }
+
+        function updateRemoveButtons(day) {
+            const blocksContainer = document.getElementById(`blocks-${day}`);
+            const blocks = blocksContainer.querySelectorAll('.time-block');
+            
+            blocks.forEach(block => {
+                const removeBtn = block.querySelector('.remove-block-btn');
+                if (blocks.length <= 1) {
+                    if (removeBtn) removeBtn.style.display = 'none';
+                } else {
+                    if (removeBtn) removeBtn.style.display = 'inline-block';
+                }
+            });
+        }
+
+        function getScheduleFromUI() {
+            const schedule = {};
+            
+            DAYS.forEach(day => {
+                const isActive = document.getElementById(`toggle-${day}`).checked;
+                
+                if (!isActive) {
+                    schedule[day] = [];
+                } else {
+                    const blocksContainer = document.getElementById(`blocks-${day}`);
+                    const blockElements = blocksContainer.querySelectorAll('.time-block');
+                    
+                    schedule[day] = Array.from(blockElements).map(block => {
+                        const selects = block.querySelectorAll('select');
+                        return {
+                            start: selects[0].value,
+                            end: selects[1].value
+                        };
+                    });
+                }
+            });
+            
+            return schedule;
+        }
+
+        async function saveSchedule() {
+            const schedule = getScheduleFromUI();
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/update-schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode,
+                        schedule: schedule
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessMsg('✅ Horario guardado correctamente');
+                } else {
+                    showErrorMsg(data.error || 'Error al guardar horario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorMsg('Error al conectar con el servidor');
+            }
+        }
+
+        async function saveGoogleMapsUrl() {
+            const googleMapsUrl = document.getElementById('googleMapsUrl').value.trim();
+            
+            try {
+                const response = await fetch(`${WORKER_URL}/update-doctor`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode,
+                        google_maps_url: googleMapsUrl
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessMsg('✅ Ubicación guardada correctamente');
+                } else {
+                    showErrorMsg(data.error || 'Error al guardar ubicación');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorMsg('Error al conectar con el servidor');
+            }
+        }
 
         // Login
         async function doLogin() {
@@ -411,69 +803,72 @@
         }
 
         // Cargar dashboard
-        // Cargar dashboard
-async function loadDashboard(doctor, stats) {
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
+        async function loadDashboard(doctor, stats) {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
 
-    document.getElementById('doctorName').textContent = `Dr. ${doctor.name}`;
-    document.getElementById('doctorSpecialty').textContent = doctor.specialty;
+            document.getElementById('doctorName').textContent = `Dr. ${doctor.name}`;
+            document.getElementById('doctorSpecialty').textContent = doctor.specialty;
 
-    document.getElementById('infoEmail').textContent = doctor.email;
-    document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
-    document.getElementById('infoAddress').textContent = doctor.address;
-    document.getElementById('infoHours').textContent = doctor.office_hours;
-    document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
-    document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
+            document.getElementById('infoEmail').textContent = doctor.email;
+            document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
+            document.getElementById('infoAddress').textContent = doctor.address || 'No especificada';
+            document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
+            document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
 
-    // Obtener configuración pública del worker
-    try {
-        const configResponse = await fetch(`${WORKER_URL}/public-config`);
-        const configData = await configResponse.json();
-        
-        if (configData.success) {
-            const telegramLink = `https://t.me/${configData.config.telegram_bot}?start=${doctor.provider_code}`;
-            const whatsappLink = `https://wa.me/${configData.config.whatsapp_phone}?text=iniciar%20${doctor.provider_code}`;
+            // Cargar horario
+            renderScheduleEditor(doctor.schedule);
             
-            // Crear HTML con ambos enlaces
-            const linksHtml = `
-                <div style="margin-bottom: 25px;">
-                    <h4 style="margin-bottom: 10px; color: #25D366; display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 24px;">📲</span> WhatsApp
-                    </h4>
-                    <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${whatsappLink}</div>
-                    <button class="btn copy-btn" onclick="copyLink('${whatsappLink}', 'WhatsApp')">📋 Copiar WhatsApp</button>
-                </div>
-                <div style="margin-bottom: 25px;">
-                    <h4 style="margin-bottom: 10px; color: #0088cc; display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 24px;">💬</span> Telegram
-                    </h4>
-                    <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${telegramLink}</div>
-                    <button class="btn copy-btn" onclick="copyLink('${telegramLink}', 'Telegram')">📋 Copiar Telegram</button>
-                </div>
-                <div style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-                    <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">🔑 Tu código de doctor:</div>
-                    <div style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${doctor.provider_code}</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Este código identifica tu consultorio y permite a tus pacientes agendar citas contigo.</div>
-                </div>
-            `;
-            
-            document.getElementById('botLink').innerHTML = linksHtml;
+            // Cargar Google Maps URL
+            document.getElementById('googleMapsUrl').value = doctor.google_maps_url || '';
+
+            // Obtener configuración pública del worker
+            try {
+                const configResponse = await fetch(`${WORKER_URL}/public-config`);
+                const configData = await configResponse.json();
+                
+                if (configData.success) {
+                    const telegramLink = `https://t.me/${configData.config.telegram_bot}?start=${doctor.provider_code}`;
+                    const whatsappLink = `https://wa.me/${configData.config.whatsapp_phone}?text=iniciar%20${doctor.provider_code}`;
+                    
+                    const linksHtml = `
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="margin-bottom: 10px; color: #25D366; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 24px;">📲</span> WhatsApp
+                            </h4>
+                            <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${whatsappLink}</div>
+                            <button class="btn copy-btn" onclick="copyLink('${whatsappLink}', 'WhatsApp')">📋 Copiar WhatsApp</button>
+                        </div>
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="margin-bottom: 10px; color: #0088cc; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 24px;">💬</span> Telegram
+                            </h4>
+                            <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${telegramLink}</div>
+                            <button class="btn copy-btn" onclick="copyLink('${telegramLink}', 'Telegram')">📋 Copiar Telegram</button>
+                        </div>
+                        <div style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+                            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">🔑 Tu código de doctor:</div>
+                            <div style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${doctor.provider_code}</div>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Este código identifica tu consultorio y permite a tus pacientes agendar citas contigo.</div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('botLink').innerHTML = linksHtml;
+                }
+            } catch (error) {
+                console.error('Error al cargar config:', error);
+                document.getElementById('botLink').innerHTML = `
+                    <div style="color: #f44336; padding: 15px; background: #ffebee; border-radius: 8px;">
+                        ❌ Error al cargar enlaces. Por favor recarga la página.
+                    </div>
+                `;
+            }
+
+            document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
+            updateCharCount();
+
+            document.getElementById('totalAppointments').textContent = stats.total_appointments;
         }
-    } catch (error) {
-        console.error('Error al cargar config:', error);
-        document.getElementById('botLink').innerHTML = `
-            <div style="color: #f44336; padding: 15px; background: #ffebee; border-radius: 8px;">
-                ❌ Error al cargar enlaces. Por favor recarga la página.
-            </div>
-        `;
-    }
-
-    document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
-    updateCharCount();
-
-    document.getElementById('totalAppointments').textContent = stats.total_appointments;
-}
 
         // Asistente Conversacional
         async function executeCommand() {
@@ -484,7 +879,6 @@ async function loadDashboard(doctor, stats) {
                 return;
             }
 
-            // Deshabilitar botón
             const btn = event.target;
             btn.disabled = true;
             btn.textContent = '⏳ Procesando...';
@@ -527,7 +921,6 @@ async function loadDashboard(doctor, stats) {
             `;
             history.insertBefore(item, history.firstChild);
             
-            // Mantener solo últimos 5
             if (history.children.length > 5) {
                 history.removeChild(history.lastChild);
             }
@@ -566,11 +959,10 @@ async function loadDashboard(doctor, stats) {
         }
 
         // Copiar link
-        // Copiar link
-function copyLink(link, platform) {
-    navigator.clipboard.writeText(link);
-    showSuccessMsg(`✅ Link de ${platform} copiado al portapapeles`);
-}
+        function copyLink(link, platform) {
+            navigator.clipboard.writeText(link);
+            showSuccessMsg(`✅ Link de ${platform} copiado al portapapeles`);
+        }
 
         // Contador de caracteres
         const kbTextarea = document.getElementById('knowledgeBase');
@@ -631,4 +1023,3 @@ function copyLink(link, platform) {
     </script>
 </body>
 </html>
-
