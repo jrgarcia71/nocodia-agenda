@@ -813,7 +813,7 @@
             document.getElementById('infoEmail').textContent = doctor.email;
             document.getElementById('infoPhone').textContent = doctor.contact_phone || 'No especificado';
             document.getElementById('infoAddress').textContent = doctor.address || 'No especificada';
-            document.getElementById('infoPrice').textContent = `$${doctor.consultation_price}`;
+            document.getElementById('infoPrice').textContent = doctor.consultation_price;
             document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
 
             // Cargar horario
@@ -1023,3 +1023,4 @@
     </script>
 </body>
 </html>
+
