@@ -15,6 +15,9 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
         }
+        body.vet-mode {
+            background: linear-gradient(135deg, #43a047 0%, #1b5e20 100%);
+        }
         .container {
             text-align: center;
             background: white;
@@ -32,6 +35,9 @@
             height: 50px;
             animation: spin 1s linear infinite;
             margin: 20px auto;
+        }
+        body.vet-mode .spinner {
+            border-top-color: #43a047;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -51,8 +57,9 @@
             font-weight: 600;
             margin-bottom: 10px;
         }
-        
-        /* Success styles */
+        body.vet-mode .progress-text {
+            color: #43a047;
+        }
         #loadingState, #successState {
             display: none;
         }
@@ -78,6 +85,9 @@
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 25px;
+        }
+        body.vet-mode .code-box {
+            background: linear-gradient(135deg, #43a047 0%, #1b5e20 100%);
         }
         .code-label {
             font-size: 12px;
@@ -178,6 +188,9 @@
             margin-top: 20px;
             transition: transform 0.2s;
         }
+        body.vet-mode .dashboard-btn {
+            background: linear-gradient(135deg, #43a047 0%, #1b5e20 100%);
+        }
         .dashboard-btn:hover {
             transform: translateY(-2px);
         }
@@ -212,11 +225,11 @@
             <h1 class="success-title">¡Registro Exitoso!</h1>
             <p class="success-subtitle">Tu asistente de citas está listo</p>
 
-            <!-- Código del doctor -->
+            <!-- Código -->
             <div class="code-box">
-                <div class="code-label">🔑 Tu código de doctor</div>
+                <div class="code-label" id="codeLabel">🔑 Tu código</div>
                 <div class="code-value" id="providerCode"></div>
-                <div class="code-hint">Este código identifica tu consultorio</div>
+                <div class="code-hint" id="codeHint">Este código identifica tu consultorio</div>
             </div>
 
             <!-- Contraseña -->
@@ -228,19 +241,19 @@
 
             <!-- Links -->
             <div class="link-section">
-                <div class="link-title whatsapp">📲 WhatsApp para pacientes</div>
+                <div class="link-title whatsapp">📲 WhatsApp para <span id="clientLabel1">pacientes</span></div>
                 <div class="link-box" id="whatsappLink"></div>
                 <button class="copy-btn whatsapp" onclick="copyLink('whatsapp')">📋 Copiar Link de WhatsApp</button>
             </div>
 
             <div class="link-section">
-                <div class="link-title telegram">💬 Telegram para pacientes</div>
+                <div class="link-title telegram">💬 Telegram para <span id="clientLabel2">pacientes</span></div>
                 <div class="link-box" id="telegramLink"></div>
                 <button class="copy-btn telegram" onclick="copyLink('telegram')">📋 Copiar Link de Telegram</button>
             </div>
 
             <div class="tip-box">
-                💡 <strong>Tip:</strong> Comparte estos enlaces en tus redes sociales, tarjetas de presentación o envíalos directamente a tus pacientes.
+                💡 <strong>Tip:</strong> Comparte estos enlaces en tus redes sociales, tarjetas de presentación o envíalos directamente a tus <span id="clientLabel3">pacientes</span>.
             </div>
 
             <button class="dashboard-btn" onclick="goToDashboard()">
@@ -253,6 +266,7 @@
         let savedProviderCode = '';
         let savedWhatsappLink = '';
         let savedTelegramLink = '';
+        let providerType = 'DOC';
 
         (async function() {
             const progressText = document.getElementById('progressText');
@@ -276,6 +290,12 @@
                 }
 
                 const data = JSON.parse(doctorData);
+                providerType = data.provider_type || localStorage.getItem('provider_type') || 'DOC';
+                
+                // Apply mode styling
+                if (providerType === 'VET') {
+                    document.body.classList.add('vet-mode');
+                }
 
                 progressText.textContent = 'Verificando credenciales de Google...';
 
@@ -297,7 +317,8 @@
                         contact_phone: data.contact_phone || null,
                         payment_methods: data.payment_methods,
                         cancellation_policy: data.cancellation_policy,
-                        dashboard_password: data.dashboard_password
+                        dashboard_password: data.dashboard_password,
+                        provider_type: providerType // DOC or VET - CRITICAL!
                     })
                 });
 
@@ -306,14 +327,12 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // Guardar datos
                     localStorage.setItem('provider_code', result.provider_code);
                     localStorage.setItem('doctor_code', result.provider_code);
                     localStorage.setItem('doctor_id', result.doctor_id);
                     
                     savedProviderCode = result.provider_code;
 
-                    // Obtener config pública para los links
                     progressText.textContent = 'Generando enlaces...';
                     
                     const configResponse = await fetch('https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev/public-config');
@@ -324,11 +343,10 @@
                         savedTelegramLink = `https://t.me/${configData.config.telegram_bot}?start=${result.provider_code}`;
                     }
 
-                    // Mostrar estado de éxito
                     showSuccessState(result.provider_code, data.dashboard_password);
                     
-                    // Limpiar datos temporales
                     localStorage.removeItem('doctorData');
+                    localStorage.removeItem('provider_type');
                     
                 } else {
                     alert('Error: ' + (result.error || 'No se pudo completar el registro'));
@@ -350,6 +368,21 @@
             document.getElementById('dashboardPassword').textContent = password;
             document.getElementById('whatsappLink').textContent = savedWhatsappLink;
             document.getElementById('telegramLink').textContent = savedTelegramLink;
+            
+            // Update labels based on provider type
+            if (providerType === 'VET') {
+                document.getElementById('codeLabel').textContent = '🔑 Tu código de veterinario';
+                document.getElementById('codeHint').textContent = 'Este código identifica tu clínica veterinaria';
+                document.getElementById('clientLabel1').textContent = 'clientes';
+                document.getElementById('clientLabel2').textContent = 'clientes';
+                document.getElementById('clientLabel3').textContent = 'clientes';
+            } else {
+                document.getElementById('codeLabel').textContent = '🔑 Tu código de doctor';
+                document.getElementById('codeHint').textContent = 'Este código identifica tu consultorio';
+                document.getElementById('clientLabel1').textContent = 'pacientes';
+                document.getElementById('clientLabel2').textContent = 'pacientes';
+                document.getElementById('clientLabel3').textContent = 'pacientes';
+            }
         }
 
         function copyLink(platform) {
