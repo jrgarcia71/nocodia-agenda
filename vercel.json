@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/vet",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/vet/",
+      "destination": "/index.html"
+    }
+  ]
+}
