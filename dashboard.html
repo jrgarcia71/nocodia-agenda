@@ -513,6 +513,46 @@
             <button class="btn" onclick="saveKnowledgeBase()">💾 Guardar Cambios</button>
         </div>
 
+        <!-- Configuración de Cuenta -->
+        <div class="card">
+            <h2 style="margin-bottom: 10px;">⚙️ Configuración de Cuenta</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Administra tu contraseña y conexión con Google Calendar.
+            </p>
+            
+            <!-- Cambiar Contraseña -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: #333;">🔐 Cambiar Contraseña</h3>
+                <div class="form-group">
+                    <label>Contraseña actual</label>
+                    <input type="password" id="currentPassword" placeholder="••••••">
+                </div>
+                <div class="form-group">
+                    <label>Nueva contraseña</label>
+                    <input type="password" id="newPassword" placeholder="••••••" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" id="confirmPassword" placeholder="••••••" minlength="6">
+                </div>
+                <button class="btn" onclick="changePassword()" style="background: #28a745;">🔐 Cambiar Contraseña</button>
+            </div>
+            
+            <!-- Reconectar Google Calendar -->
+            <div style="background: #fff3e0; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
+                <h3 style="margin-bottom: 10px; font-size: 16px; color: #e65100;">📅 Google Calendar</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                    Si tus pacientes no pueden agendar citas o ves errores de calendario, reconecta tu cuenta de Google.
+                    Esto es necesario si cambiaste tu contraseña de Google o revocaste permisos.
+                </p>
+                <div id="calendarStatus" style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 6px;">
+                    <span id="calendarStatusIcon">⏳</span>
+                    <span id="calendarStatusText">Verificando estado...</span>
+                </div>
+                <button class="btn" onclick="reconnectGoogleCalendar()" style="background: #ff9800;">🔄 Reconectar Google Calendar</button>
+            </div>
+        </div>
+
         <button class="btn logout-btn" onclick="doLogout()">Cerrar Sesión</button>
     </div>
 
@@ -579,7 +619,6 @@
 
         function renderTimeBlocks(day, blocks, timeOptions) {
             if (blocks.length === 0) {
-                // Bloques por defecto
                 blocks = [{ start: '09:00', end: '13:00' }, { start: '15:00', end: '18:00' }];
             }
             
@@ -868,6 +907,17 @@
             updateCharCount();
 
             document.getElementById('totalAppointments').textContent = stats.total_appointments;
+
+            // Verificar estado del calendario
+            checkCalendarStatus();
+            
+            // Mostrar mensaje de reconexión exitosa si aplica
+            if (localStorage.getItem('show_reconnect_success') === 'true') {
+                localStorage.removeItem('show_reconnect_success');
+                setTimeout(() => {
+                    showSuccessMsg('✅ Google Calendar reconectado exitosamente');
+                }, 500);
+            }
         }
 
         // Asistente Conversacional
@@ -1013,14 +1063,131 @@
             setTimeout(() => el.style.display = 'none', 5000);
         }
 
-        // Auto-login si hay código guardado
+        // Cambiar contraseña
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showErrorMsg('Por favor completa todos los campos');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showErrorMsg('La nueva contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showErrorMsg('Las contraseñas no coinciden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${WORKER_URL}/change-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode,
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessMsg('✅ Contraseña cambiada exitosamente');
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showErrorMsg(data.error || 'Error al cambiar contraseña');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorMsg('Error al conectar con el servidor');
+            }
+        }
+
+        // Reconectar Google Calendar
+        async function reconnectGoogleCalendar() {
+            if (!confirm('¿Estás seguro de reconectar tu Google Calendar?\n\nSe abrirá una ventana de Google para autorizar nuevamente el acceso.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${WORKER_URL}/reconnect-calendar-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.auth_url) {
+                    localStorage.setItem('reconnect_provider_code', currentProviderCode);
+                    window.location.href = data.auth_url;
+                } else {
+                    showErrorMsg(data.error || 'Error al generar enlace de reconexión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorMsg('Error al conectar con el servidor');
+            }
+        }
+
+        // Verificar estado del calendario
+        async function checkCalendarStatus() {
+            const statusIcon = document.getElementById('calendarStatusIcon');
+            const statusText = document.getElementById('calendarStatusText');
+            
+            if (!statusIcon || !statusText) return;
+
+            try {
+                const response = await fetch(`${WORKER_URL}/check-calendar-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider_code: currentProviderCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.connected) {
+                    statusIcon.textContent = '✅';
+                    statusText.textContent = 'Calendario conectado correctamente';
+                    statusText.style.color = '#28a745';
+                } else {
+                    statusIcon.textContent = '❌';
+                    statusText.textContent = data.error || 'Calendario desconectado - Necesitas reconectar';
+                    statusText.style.color = '#dc3545';
+                }
+            } catch (error) {
+                statusIcon.textContent = '⚠️';
+                statusText.textContent = 'No se pudo verificar el estado';
+                statusText.style.color = '#ff9800';
+            }
+        }
+
+        // Auto-login si hay código guardado + manejar retorno OAuth
         window.addEventListener('DOMContentLoaded', () => {
             const savedCode = localStorage.getItem('doctor_code');
             if (savedCode) {
                 document.getElementById('loginCode').value = savedCode;
             }
+            
+            // Manejar retorno de reconexión OAuth
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('reconnected') === 'true') {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                localStorage.setItem('show_reconnect_success', 'true');
+            }
         });
     </script>
 </body>
 </html>
-
