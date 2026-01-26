@@ -271,6 +271,7 @@
         let savedProviderCode = '';
         let savedWhatsappLink = '';
         let savedTelegramLink = '';
+        let isReconnection = false;
 
         (async function() {
             const progressText = document.getElementById('progressText');
@@ -288,6 +289,7 @@
 
                 // ========== RECONEXIÓN ==========
                 if (state && state.startsWith('reconnect_')) {
+                    isReconnection = true;
                     const providerCode = state.replace('reconnect_', '');
                     progressText.textContent = 'Reconectando Google Calendar...';
                     
@@ -407,7 +409,11 @@
         }
 
         function goToDashboard() {
-            window.location.href = '/dashboard.html?reconnected=true';
+            if (isReconnection) {
+                window.location.href = '/dashboard.html?reconnected=true';
+            } else {
+                window.location.href = '/dashboard.html';
+            }
         }
     </script>
 </body>
