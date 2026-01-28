@@ -558,7 +558,12 @@
 
     <script>
         const WORKER_URL = 'https://nocodia-agenda-worker-v2.jraul-garcia.workers.dev';
+        
+        // ═══════════════════════════════════════════════════════════════
+        // VARIABLES DE SESIÓN (incluye password para autenticación)
+        // ═══════════════════════════════════════════════════════════════
         let currentProviderCode = null;
+        let currentPassword = null;  // ← NUEVO: Guardamos password en memoria
         let currentDoctorData = null;
 
         const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
@@ -572,7 +577,7 @@
             'domingo': 'Domingo'
         };
 
-        // Generar opciones de hora (07:00 a 21:00 en incrementos de 30 min)
+        // Generar opciones de hora
         function generateTimeOptions() {
             let options = '';
             for (let hour = 7; hour <= 21; hour++) {
@@ -753,6 +758,10 @@
             return schedule;
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // FUNCIONES CON AUTENTICACIÓN (envían password)
+        // ═══════════════════════════════════════════════════════════════
+
         async function saveSchedule() {
             const schedule = getScheduleFromUI();
             
@@ -762,6 +771,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         provider_code: currentProviderCode,
+                        password: currentPassword,  // ← AUTENTICACIÓN
                         schedule: schedule
                     })
                 });
@@ -788,6 +798,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         provider_code: currentProviderCode,
+                        password: currentPassword,  // ← AUTENTICACIÓN
                         google_maps_url: googleMapsUrl
                     })
                 });
@@ -829,8 +840,10 @@
 
                 if (data.success) {
                     currentProviderCode = code;
+                    currentPassword = password;  // ← GUARDAR PASSWORD
                     currentDoctorData = data.doctor;
                     localStorage.setItem('doctor_code', code);
+                    // NO guardamos password en localStorage por seguridad
                     loadDashboard(data.doctor, data.stats);
                 } else {
                     showError('loginError', data.error || 'Código o contraseña incorrectos');
@@ -855,13 +868,9 @@
             document.getElementById('infoPrice').textContent = doctor.consultation_price;
             document.getElementById('infoDuration').textContent = `${doctor.slot_duration} minutos`;
 
-            // Cargar horario
             renderScheduleEditor(doctor.schedule);
-            
-            // Cargar Google Maps URL
             document.getElementById('googleMapsUrl').value = doctor.google_maps_url || '';
 
-            // Obtener configuración pública del worker
             try {
                 const configResponse = await fetch(`${WORKER_URL}/public-config`);
                 const configData = await configResponse.json();
@@ -870,53 +879,35 @@
                     const telegramLink = `https://t.me/${configData.config.telegram_bot}?start=${doctor.provider_code}`;
                     const whatsappLink = `https://wa.me/${configData.config.whatsapp_phone}?text=iniciar%20${doctor.provider_code}`;
                     
-                    const linksHtml = `
+                    document.getElementById('botLink').innerHTML = `
                         <div style="margin-bottom: 25px;">
-                            <h4 style="margin-bottom: 10px; color: #25D366; display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 24px;">📲</span> WhatsApp
-                            </h4>
+                            <h4 style="margin-bottom: 10px; color: #25D366;">📲 WhatsApp</h4>
                             <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${whatsappLink}</div>
                             <button class="btn copy-btn" onclick="copyLink('${whatsappLink}', 'WhatsApp')">📋 Copiar WhatsApp</button>
                         </div>
                         <div style="margin-bottom: 25px;">
-                            <h4 style="margin-bottom: 10px; color: #0088cc; display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 24px;">💬</span> Telegram
-                            </h4>
+                            <h4 style="margin-bottom: 10px; color: #0088cc;">💬 Telegram</h4>
                             <div class="link-box" style="margin-bottom: 10px; font-size: 13px;">${telegramLink}</div>
                             <button class="btn copy-btn" onclick="copyLink('${telegramLink}', 'Telegram')">📋 Copiar Telegram</button>
                         </div>
                         <div style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-                            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">🔑 Tu código de doctor:</div>
-                            <div style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${doctor.provider_code}</div>
-                            <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">Este código identifica tu consultorio y permite a tus pacientes agendar citas contigo.</div>
+                            <div style="font-size: 13px; opacity: 0.9;">🔑 Tu código:</div>
+                            <div style="font-family: monospace; font-size: 18px; font-weight: bold;">${doctor.provider_code}</div>
                         </div>
                     `;
-                    
-                    document.getElementById('botLink').innerHTML = linksHtml;
                 }
             } catch (error) {
                 console.error('Error al cargar config:', error);
-                document.getElementById('botLink').innerHTML = `
-                    <div style="color: #f44336; padding: 15px; background: #ffebee; border-radius: 8px;">
-                        ❌ Error al cargar enlaces. Por favor recarga la página.
-                    </div>
-                `;
             }
 
             document.getElementById('knowledgeBase').value = doctor.knowledge_base || '';
             updateCharCount();
-
             document.getElementById('totalAppointments').textContent = stats.total_appointments;
-
-            // Verificar estado del calendario
             checkCalendarStatus();
             
-            // Mostrar mensaje de reconexión exitosa si aplica
             if (localStorage.getItem('show_reconnect_success') === 'true') {
                 localStorage.removeItem('show_reconnect_success');
-                setTimeout(() => {
-                    showSuccessMsg('✅ Google Calendar reconectado exitosamente');
-                }, 500);
+                setTimeout(() => showSuccessMsg('✅ Google Calendar reconectado exitosamente'), 500);
             }
         }
 
@@ -939,6 +930,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         provider_code: currentProviderCode,
+                        password: currentPassword,  // ← AUTENTICACIÓN
                         command: command
                     })
                 });
@@ -970,10 +962,7 @@
                 <div class="history-response">${response}</div>
             `;
             history.insertBefore(item, history.firstChild);
-            
-            if (history.children.length > 5) {
-                history.removeChild(history.lastChild);
-            }
+            if (history.children.length > 5) history.removeChild(history.lastChild);
         }
 
         // Guardar knowledge base
@@ -991,6 +980,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         provider_code: currentProviderCode,
+                        password: currentPassword,  // ← AUTENTICACIÓN
                         knowledge_base: knowledgeBase
                     })
                 });
@@ -1008,40 +998,28 @@
             }
         }
 
-        // Copiar link
         function copyLink(link, platform) {
             navigator.clipboard.writeText(link);
             showSuccessMsg(`✅ Link de ${platform} copiado al portapapeles`);
         }
 
-        // Contador de caracteres
         const kbTextarea = document.getElementById('knowledgeBase');
-        if (kbTextarea) {
-            kbTextarea.addEventListener('input', updateCharCount);
-        }
+        if (kbTextarea) kbTextarea.addEventListener('input', updateCharCount);
 
         function updateCharCount() {
             const text = document.getElementById('knowledgeBase').value;
             const count = text.length;
             const counter = document.getElementById('charCount');
             counter.textContent = `${count} / 2000 caracteres`;
-
-            if (count > 1800) {
-                counter.className = 'char-count error';
-            } else if (count > 1500) {
-                counter.className = 'char-count warning';
-            } else {
-                counter.className = 'char-count';
-            }
+            counter.className = count > 1800 ? 'char-count error' : count > 1500 ? 'char-count warning' : 'char-count';
         }
 
-        // Logout
         function doLogout() {
             localStorage.removeItem('doctor_code');
+            currentPassword = null;  // ← LIMPIAR PASSWORD
             location.reload();
         }
 
-        // Mensajes
         function showError(elementId, message) {
             const el = document.getElementById(elementId);
             el.textContent = message;
@@ -1065,11 +1043,11 @@
 
         // Cambiar contraseña
         async function changePassword() {
-            const currentPassword = document.getElementById('currentPassword').value;
+            const currentPwd = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            if (!currentPassword || !newPassword || !confirmPassword) {
+            if (!currentPwd || !newPassword || !confirmPassword) {
                 showErrorMsg('Por favor completa todos los campos');
                 return;
             }
@@ -1090,7 +1068,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         provider_code: currentProviderCode,
-                        current_password: currentPassword,
+                        current_password: currentPwd,
                         new_password: newPassword
                     })
                 });
@@ -1098,6 +1076,7 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    currentPassword = newPassword;  // ← ACTUALIZAR PASSWORD EN MEMORIA
                     showSuccessMsg('✅ Contraseña cambiada exitosamente');
                     document.getElementById('currentPassword').value = '';
                     document.getElementById('newPassword').value = '';
@@ -1113,16 +1092,15 @@
 
         // Reconectar Google Calendar
         async function reconnectGoogleCalendar() {
-            if (!confirm('¿Estás seguro de reconectar tu Google Calendar?\n\nSe abrirá una ventana de Google para autorizar nuevamente el acceso.')) {
-                return;
-            }
+            if (!confirm('¿Estás seguro de reconectar tu Google Calendar?')) return;
 
             try {
                 const response = await fetch(`${WORKER_URL}/reconnect-calendar-url`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        provider_code: currentProviderCode
+                        provider_code: currentProviderCode,
+                        password: currentPassword  // ← AUTENTICACIÓN
                     })
                 });
 
@@ -1132,7 +1110,7 @@
                     localStorage.setItem('reconnect_provider_code', currentProviderCode);
                     window.location.href = data.auth_url;
                 } else {
-                    showErrorMsg(data.error || 'Error al generar enlace de reconexión');
+                    showErrorMsg(data.error || 'Error al generar enlace');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -1144,7 +1122,6 @@
         async function checkCalendarStatus() {
             const statusIcon = document.getElementById('calendarStatusIcon');
             const statusText = document.getElementById('calendarStatusText');
-            
             if (!statusIcon || !statusText) return;
 
             try {
@@ -1152,7 +1129,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        provider_code: currentProviderCode
+                        provider_code: currentProviderCode,
+                        password: currentPassword  // ← AUTENTICACIÓN
                     })
                 });
 
@@ -1164,24 +1142,20 @@
                     statusText.style.color = '#28a745';
                 } else {
                     statusIcon.textContent = '❌';
-                    statusText.textContent = data.error || 'Calendario desconectado - Necesitas reconectar';
+                    statusText.textContent = data.error || 'Calendario desconectado';
                     statusText.style.color = '#dc3545';
                 }
             } catch (error) {
                 statusIcon.textContent = '⚠️';
-                statusText.textContent = 'No se pudo verificar el estado';
+                statusText.textContent = 'No se pudo verificar';
                 statusText.style.color = '#ff9800';
             }
         }
 
-        // Auto-login si hay código guardado + manejar retorno OAuth
         window.addEventListener('DOMContentLoaded', () => {
             const savedCode = localStorage.getItem('doctor_code');
-            if (savedCode) {
-                document.getElementById('loginCode').value = savedCode;
-            }
+            if (savedCode) document.getElementById('loginCode').value = savedCode;
             
-            // Manejar retorno de reconexión OAuth
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('reconnected') === 'true') {
                 window.history.replaceState({}, document.title, window.location.pathname);
